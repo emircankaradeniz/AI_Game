@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 
-
 void main() {
   runApp(const MyApp());
 }
@@ -29,7 +28,9 @@ class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
-List<List<GridStatus>> gridYellow = [];
+
+List<GridStatus> gridYellow = [];
+
 class _MyHomePageState extends State<MyHomePage> {
   final List<int> _initiallySelected = [];
   final List<int> _subsequentlySelected = [];
@@ -37,9 +38,10 @@ class _MyHomePageState extends State<MyHomePage> {
   final int _maxSubsequentSelections = 40;
   Coordinate? start;
   Coordinate? goal;
+  String? selectedAlgorithm;
 
   // Initialize the grid
-  final List<List<GridStatus>> grid = List<List<GridStatus>>.generate(
+  List<List<GridStatus>> grid = List<List<GridStatus>>.generate(
     9, // Assuming a 9x9 grid based on itemCount
         (i) => List<GridStatus>.generate(
       9,
@@ -63,7 +65,8 @@ class _MyHomePageState extends State<MyHomePage> {
           }
         }
       } else if (_subsequentlySelected.length < _maxSubsequentSelections) {
-        if (!_subsequentlySelected.contains(index) && !_initiallySelected.contains(index)) {
+        if (!_subsequentlySelected.contains(index) &&
+            !_initiallySelected.contains(index)) {
           _subsequentlySelected.add(index);
 
           // Update the grid color to red (0) for the subsequently selected index
@@ -84,6 +87,84 @@ class _MyHomePageState extends State<MyHomePage> {
           print('Red coordinate: (${status.coor.x}, ${status.coor.y})');
         }
       }
+    }
+  }
+
+  void _highlightYellowButtons() {
+    _runAlgorithm();
+    if (!ulasildi) {
+      _showPathNotFoundDialog();
+    } else {
+      setState(() {});
+    }
+  }
+
+  void _showPathNotFoundDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Path Not Found'),
+          content: const Text('The path could not be found.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _restartGame();
+              },
+              child: const Text('Restart'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showSelectAlgorithmDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Algorithm Not Selected'),
+          content: const Text('Please select an algorithm before running.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _restartGame() {
+    setState(() {
+      _initiallySelected.clear();
+      _subsequentlySelected.clear();
+      start = null;
+      goal = null;
+      selectedAlgorithm = null;
+      gridYellow.clear();
+      grid = List<List<GridStatus>>.generate(
+        9,
+            (i) => List<GridStatus>.generate(
+          9,
+              (j) => GridStatus(Coordinate(i, j), 1),
+          growable: false,
+        ),
+        growable: false,
+      );
+    });
+  }
+
+  void _runAlgorithm() {
+    if (selectedAlgorithm == null) {
+      _showSelectAlgorithmDialog();
+    } else if (start != null && goal != null) {
+      AI_Algoritma(grid, start!, goal!, selectedAlgorithm!);
     }
   }
 
@@ -108,7 +189,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 } else if (_subsequentlySelected.contains(index)) {
                   backgroundColor = Colors.red;
                 } else {
-                  backgroundColor = Colors.blue;
+                  int row = index ~/ 9;
+                  int column = index % 9;
+                  if (gridYellow.any((element) =>
+                  element.coor.x == column && element.coor.y == row)) {
+                    backgroundColor = Colors.yellow;
+                  } else {
+                    backgroundColor = Colors.blue;
+                  }
                 }
 
                 return ElevatedButton(
@@ -123,13 +211,50 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: () {
-                if (start != null && goal != null) {
-                  BfsAlgoritma(grid, start!, goal!);
-                }
-              },
-              child: const Text('Run Algorithms'),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedAlgorithm = "BFS";
+                    });
+                  },
+                  child: const Text('BFS Algorithm'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedAlgorithm = "DFS";
+                    });
+                  },
+                  child: const Text('DFS Algorithm'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedAlgorithm = "A*";
+                    });
+                  },
+                  child: const Text('A* Algorithm'),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: _highlightYellowButtons,
+                  child: const Text('Play'),
+                ),
+                ElevatedButton(
+                  onPressed: _restartGame,
+                  child: const Text('Restart'),
+                ),
+              ],
             ),
           ),
         ],
@@ -137,33 +262,35 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-void BfsAlgoritma(List<List<GridStatus>> grid, Coordinate start, Coordinate goal) {
-  print("start"+start.toString()+" "+goal.toString());
-  print("liste");
-  for (var i = 0; i < grid.length; i++) {
-    for (var j = 0; j < grid.length; j++) {
-      if (grid[i][j].color == 0) {
-        print(grid[i][j].coor);
-      }
-    }
-  }
-  Problem problem = Problem(9, 9, start, goal, grid); // Create the problem based on the grid
+
+bool ulasildi = false;
+
+void AI_Algoritma(List<List<GridStatus>> grid, Coordinate start, Coordinate goal, String Algoritma) {
+  Problem problem = Problem(9, 9, start, goal, grid);
+
   List<Action> graphSearchBFS(Problem problem) {
     List<GridStatus> closed = [];
     Queue<Node> open = Queue();
     open.push(Node.initState(problem.start, Action(0, 0, 0), problem.grid[problem.start.x][problem.start.y]));
+    ulasildi = false;
     while (true) {
       if (open.length() == 0) {
         return [];
       }
       Node n = open.pop();
       if (n.coor.x == problem.goal.x && n.coor.y == problem.goal.y) {
+        ulasildi = true;
         print('Total cost: ${n.cost}');
         print('Solution depth: ${n.depth}');
         print(getPath2(n));
-        for(var i=0;i<getPath2(n).length;i++){
-          Coordinate cordinat=Coordinate(getPath2(n)[i].x, getPath2(n)[i].y);
-          print(cordinat.toString()) ;
+        int X = problem.start.x;
+        int Y = problem.start.y;
+        for (var i = 0; i < getPath2(n).length; i++) {
+          X = X + getPath2(n)[i].x;
+          Y = Y + getPath2(n)[i].y;
+          Coordinate cordinat = Coordinate(X, Y);
+          GridStatus gridStatus = GridStatus(cordinat, 2);
+          gridYellow.add(gridStatus);
         }
         break;
       }
@@ -186,12 +313,22 @@ void BfsAlgoritma(List<List<GridStatus>> grid, Coordinate start, Coordinate goal
       }
       Node n = open.pop();
       if (n.coor.x == problem.goal.x && n.coor.y == problem.goal.y) {
+        ulasildi = true;
         print('Total cost: ${n.cost}');
         print('Solution depth: ${n.depth}');
         print(getPath2(n));
+        int X = problem.start.x;
+        int Y = problem.start.y;
+        for (var i = 0; i < getPath2(n).length; i++) {
+          X = X + getPath2(n)[i].x;
+          Y = Y + getPath2(n)[i].y;
+          Coordinate cordinat = Coordinate(X, Y);
+          GridStatus gridStatus = GridStatus(cordinat, 2);
+          gridYellow.add(gridStatus);
+        }
         break;
       }
-      if (closed.contains(n.status)) continue;
+      if (closed.contains(n.status)) continue; // Ensure the status is unique
       closed.add(n.status);
       for (Node nd in expand(n, problem)) {
         open.push(nd);
@@ -200,12 +337,56 @@ void BfsAlgoritma(List<List<GridStatus>> grid, Coordinate start, Coordinate goal
     return [];
   }
 
-  print('BFS Function');
-  graphSearchBFS(problem);
-  print('\n\nDFS Function');
-  graphSearchDFS(problem);
-}
+  // Updated A* Search Algorithm
+  List<Action> graphSearchAStar(Problem problem) {
+    List<GridStatus> closed = [];
+    PriorityQueue<Node> open = PriorityQueue((a, b) => a.totalCost.compareTo(b.totalCost));
 
+    Node startNode = Node.initState(problem.start, Action(0, 0, 0), problem.grid[problem.start.x][problem.start.y]);
+    open.push(startNode);
+
+    while (open.isNotEmpty) {
+      Node current = open.pop();
+
+      if (current.coor.x == problem.goal.x && current.coor.y == problem.goal.y) {
+        ulasildi = true;
+        print('Total cost: ${current.cost}');
+        print('Solution depth: ${current.depth}');
+        print(getPath2(current));
+
+        int X = problem.start.x;
+        int Y = problem.start.y;
+        for (var i = 0; i < getPath2(current).length; i++) {
+          X = X + getPath2(current)[i].x;
+          Y = Y + getPath2(current)[i].y;
+          Coordinate coordinate = Coordinate(X, Y);
+          GridStatus gridStatus = GridStatus(coordinate, 2);
+          gridYellow.add(gridStatus);
+        }
+        break;
+      }
+
+      closed.add(current.status);
+
+      for (Node neighbor in expand(current, problem)) {
+        if (closed.contains(neighbor.status)) continue;
+        if (!open.contains(neighbor)) {
+          open.push(neighbor);
+        }
+      }
+    }
+
+    return [];
+  }
+
+  if (Algoritma == "BFS") {
+    graphSearchBFS(problem);
+  } else if (Algoritma == "DFS") {
+    graphSearchDFS(problem);
+  } else if (Algoritma == "A*") {
+    graphSearchAStar(problem);
+  }
+}
 List<Node> expand(Node n, Problem p) {
   List<Node> list = [];
   if (n.coor.x > 0 && p.grid[n.coor.x - 1][n.coor.y].color == 1) {
@@ -222,7 +403,6 @@ List<Node> expand(Node n, Problem p) {
   }
   return list;
 }
-
 List<Action> getPath2(Node n) {
   if (n.parent != null) {
     return getPath2(n.parent) + [n.action];
@@ -230,7 +410,6 @@ List<Action> getPath2(Node n) {
     return [];
   }
 }
-
 class Action {
   int x, y;
   int cost;
@@ -279,6 +458,8 @@ class Node {
   Action action;
   var parent;
   GridStatus status;
+
+  get totalCost => cost;
 
   @override
   String toString() {
@@ -336,3 +517,29 @@ class Queue<E> {
   E pop() => _storage.removeAt(0);
   int length() => _storage.length;
 }
+class PriorityQueue<T> {
+  final List<T> _queue = [];
+  final int Function(T, T) _compare;
+
+  PriorityQueue(this._compare);
+
+  void push(T value) {
+    _queue.add(value);
+    _queue.sort(_compare);
+  }
+
+  T pop() {
+    if (_queue.isEmpty) {
+      throw StateError("Priority queue is empty");
+    }
+    return _queue.removeAt(0);
+  }
+
+  bool get isNotEmpty => _queue.isNotEmpty;
+
+  bool contains(T value) => _queue.contains(value);
+
+  int get length => _queue.length;
+}
+
+
