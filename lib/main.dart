@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 
+
 void main() {
   runApp(const MyApp());
 }
@@ -28,22 +29,24 @@ class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
-
+List<List<GridStatus>> gridYellow = [];
 class _MyHomePageState extends State<MyHomePage> {
   final List<int> _initiallySelected = [];
   final List<int> _subsequentlySelected = [];
   final int _maxInitialSelections = 2;
   final int _maxSubsequentSelections = 40;
+  Coordinate? start;
+  Coordinate? goal;
 
   // Initialize the grid
   final List<List<GridStatus>> grid = List<List<GridStatus>>.generate(
-      9, // Assuming a 9x9 grid based on itemCount
-          (i) => List<GridStatus>.generate(
-          9,
-              (j) => GridStatus(Coordinate(i, j), 1),
-          growable: false
-      ),
-      growable: false
+    9, // Assuming a 9x9 grid based on itemCount
+        (i) => List<GridStatus>.generate(
+      9,
+          (j) => GridStatus(Coordinate(i, j), 1),
+      growable: false,
+    ),
+    growable: false,
   );
 
   void _onButtonPressed(int index) {
@@ -51,6 +54,13 @@ class _MyHomePageState extends State<MyHomePage> {
       if (_initiallySelected.length < _maxInitialSelections) {
         if (!_initiallySelected.contains(index)) {
           _initiallySelected.add(index);
+          int row = index ~/ 9; // Assuming a 9x9 grid
+          int column = index % 9;
+          if (_initiallySelected.length == 1) {
+            start = Coordinate(column, row);
+          } else if (_initiallySelected.length == 2) {
+            goal = Coordinate(column, row);
+          }
         }
       } else if (_subsequentlySelected.length < _maxSubsequentSelections) {
         if (!_subsequentlySelected.contains(index) && !_initiallySelected.contains(index)) {
@@ -59,7 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
           // Update the grid color to red (0) for the subsequently selected index
           int row = index ~/ 9; // Assuming a 9x9 grid
           int column = index % 9;
-          grid[row][column].color = 0;
+          grid[column][row].color = 0;
         }
       }
     });
@@ -76,6 +86,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,8 +124,12 @@ class _MyHomePageState extends State<MyHomePage> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
-              onPressed: () => BfsAlgoritma(grid),
-              child: const Text('Print Selected Indices'),
+              onPressed: () {
+                if (start != null && goal != null) {
+                  BfsAlgoritma(grid, start!, goal!);
+                }
+              },
+              child: const Text('Run Algorithms'),
             ),
           ),
         ],
@@ -122,57 +137,73 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+void BfsAlgoritma(List<List<GridStatus>> grid, Coordinate start, Coordinate goal) {
+  print("start"+start.toString()+" "+goal.toString());
+  print("liste");
+  for (var i = 0; i < grid.length; i++) {
+    for (var j = 0; j < grid.length; j++) {
+      if (grid[i][j].color == 0) {
+        print(grid[i][j].coor);
+      }
+    }
+  }
+  Problem problem = Problem(9, 9, start, goal, grid); // Create the problem based on the grid
+  List<Action> graphSearchBFS(Problem problem) {
+    List<GridStatus> closed = [];
+    Queue<Node> open = Queue();
+    open.push(Node.initState(problem.start, Action(0, 0, 0), problem.grid[problem.start.x][problem.start.y]));
+    while (true) {
+      if (open.length() == 0) {
+        return [];
+      }
+      Node n = open.pop();
+      if (n.coor.x == problem.goal.x && n.coor.y == problem.goal.y) {
+        print('Total cost: ${n.cost}');
+        print('Solution depth: ${n.depth}');
+        print(getPath2(n));
+        for(var i=0;i<getPath2(n).length;i++){
+          Coordinate cordinat=Coordinate(getPath2(n)[i].x, getPath2(n)[i].y);
+          print(cordinat.toString()) ;
+        }
+        break;
+      }
+      if (closed.contains(n.status)) continue; // Ensure the status is unique
+      closed.add(n.status);
+      for (Node nd in expand(n, problem)) {
+        open.push(nd);
+      }
+    }
+    return [];
+  }
 
-void BfsAlgoritma(List<List<GridStatus>> grid) {
-  Problem problem = Problem(9, 9, Coordinate(1, 7), Coordinate(6, 2), grid); // Create the problem based on the grid
+  List<Action> graphSearchDFS(Problem problem) {
+    List<GridStatus> closed = [];
+    Stack<Node> open = Stack();
+    open.push(Node.initState(problem.start, Action(0, 0, 0), problem.grid[problem.start.x][problem.start.y]));
+    while (true) {
+      if (open.length() == 0) {
+        return [];
+      }
+      Node n = open.pop();
+      if (n.coor.x == problem.goal.x && n.coor.y == problem.goal.y) {
+        print('Total cost: ${n.cost}');
+        print('Solution depth: ${n.depth}');
+        print(getPath2(n));
+        break;
+      }
+      if (closed.contains(n.status)) continue;
+      closed.add(n.status);
+      for (Node nd in expand(n, problem)) {
+        open.push(nd);
+      }
+    }
+    return [];
+  }
 
   print('BFS Function');
   graphSearchBFS(problem);
   print('\n\nDFS Function');
   graphSearchDFS(problem);
-}
-List<Action> graphSearchBFS(Problem problem) {
-  List<GridStatus> closed = [];
-  Queue<Node> open = Queue();
-  open.push(Node.initState(problem.start, Action(0, 0, 0), problem.grid[problem.start.x][problem.start.y]));
-  while (true) {
-    if (open.length() == 0) {
-      return [];
-    }
-    Node n = open.pop();
-    if (n.coor.x == problem.goal.x && n.coor.y == problem.goal.y) {
-      print('Total cost: ${n.cost}');
-      print('Solution depth: ${n.depth}');
-      print(getPath2(n));
-    }
-    if (closed.contains(n.status)) continue; // Ensure the status is unique
-    closed.add(n.status);
-    for (Node nd in expand(n, problem)) {
-      open.push(nd);
-    }
-  }
-}
-
-List<Action> graphSearchDFS(Problem problem) {
-  List<GridStatus> closed = [];
-  Stack<Node> open = Stack();
-  open.push(Node.initState(problem.start, Action(0, 0, 0), problem.grid[problem.start.x][problem.start.y]));
-  while (true) {
-    if (open.length() == 0) {
-      return [];
-    }
-    Node n = open.pop();
-    if (n.coor.x == problem.goal.x && n.coor.y == problem.goal.y) {
-      print('Total cost: ${n.cost}');
-      print('Solution depth: ${n.depth}');
-      print(getPath2(n));
-    }
-    if (closed.contains(n.status)) continue; // Ensure the status is unique
-    closed.add(n.status);
-    for (Node nd in expand(n, problem)) {
-      open.push(nd);
-    }
-  }
 }
 
 List<Node> expand(Node n, Problem p) {
@@ -215,9 +246,6 @@ class GridStatus {
   Coordinate coor;
   int color;
   GridStatus(this.coor, this.color);
-
-  get coordinate => null;
-
   @override
   String toString() {
     return 'Row: ${coor.x} | Col: ${coor.y} | ${(color == 0) ? 'Black' : 'White'} ';
