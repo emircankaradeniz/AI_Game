@@ -40,9 +40,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Coordinate? goal;
   String? selectedAlgorithm;
 
-  // Initialize the grid
   List<List<GridStatus>> grid = List<List<GridStatus>>.generate(
-    9, // Assuming a 9x9 grid based on itemCount
+    9,
         (i) => List<GridStatus>.generate(
       9,
           (j) => GridStatus(Coordinate(i, j), 1),
@@ -56,7 +55,7 @@ class _MyHomePageState extends State<MyHomePage> {
       if (_initiallySelected.length < _maxInitialSelections) {
         if (!_initiallySelected.contains(index)) {
           _initiallySelected.add(index);
-          int row = index ~/ 9; // Assuming a 9x9 grid
+          int row = index ~/ 9;
           int column = index % 9;
           if (_initiallySelected.length == 1) {
             start = Coordinate(column, row);
@@ -69,8 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
             !_initiallySelected.contains(index)) {
           _subsequentlySelected.add(index);
 
-          // Update the grid color to red (0) for the subsequently selected index
-          int row = index ~/ 9; // Assuming a 9x9 grid
+          int row = index ~/ 9;
           int column = index % 9;
           grid[column][row].color = 0;
         }
@@ -179,9 +177,9 @@ class _MyHomePageState extends State<MyHomePage> {
           Expanded(
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 9, // Number of columns
+                crossAxisCount: 9,
               ),
-              itemCount: 81, // Number of buttons (9x9)
+              itemCount: 81,
               itemBuilder: (BuildContext context, int index) {
                 Color backgroundColor;
                 if (_initiallySelected.contains(index)) {
@@ -294,7 +292,7 @@ void AI_Algoritma(List<List<GridStatus>> grid, Coordinate start, Coordinate goal
         }
         break;
       }
-      if (closed.contains(n.status)) continue; // Ensure the status is unique
+      if (closed.contains(n.status)) continue;
       closed.add(n.status);
       for (Node nd in expand(n, problem)) {
         open.push(nd);
@@ -328,7 +326,7 @@ void AI_Algoritma(List<List<GridStatus>> grid, Coordinate start, Coordinate goal
         }
         break;
       }
-      if (closed.contains(n.status)) continue; // Ensure the status is unique
+      if (closed.contains(n.status)) continue;
       closed.add(n.status);
       for (Node nd in expand(n, problem)) {
         open.push(nd);
@@ -336,8 +334,6 @@ void AI_Algoritma(List<List<GridStatus>> grid, Coordinate start, Coordinate goal
     }
     return [];
   }
-
-  // Updated A* Search Algorithm
   List<Action> graphSearchAStar(Problem problem) {
     List<GridStatus> closed = [];
     PriorityQueue<Node> open = PriorityQueue((a, b) => a.totalCost.compareTo(b.totalCost));
